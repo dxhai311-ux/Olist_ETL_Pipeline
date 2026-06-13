@@ -1,4 +1,5 @@
-from etl import extract, transform
+from etl import extract, transform, load
+from db import get_engine
 
 def run_pipeline():
 
@@ -8,7 +9,8 @@ def run_pipeline():
 
 	df = transform(df)
 
-	df.info()
+	engine = get_engine()
+	load(df, engine, 'orders')	
 
 if __name__ == "__main__":
 	run_pipeline()

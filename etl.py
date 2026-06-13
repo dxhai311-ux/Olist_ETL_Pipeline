@@ -1,4 +1,5 @@
 import pandas as pd 
+from sqlalchemy.engine import Engine
 
 def extract(file_name : str) -> pd.DataFrame:
 	"""
@@ -39,6 +40,22 @@ def transform(df : pd.DataFrame) -> pd.DataFrame:
 		df[col] = pd.to_datetime(df[col])
 
 	#B5: Thêm cột để tính số ngày giao đúng hạn, sớm hạn, trễ hạn
-	df['delivery_delay'] = df['order_delivered_customer_date'] - df['order_estimated_delivery_date']
-
+	df['delivery_delay'] = (
+		df['order_delivered_customer_date'] - df['order_estimated_delivery_date']
+	).dt.days
 	return df
+
+def load(df : pd.DataFrame, engine : Engine, table_name : str) -> None:
+
+	"""Load DataFrame into PostgreSQL table"""
+
+	df.to_sql(
+		name = table_name, 
+		con = engine, 
+		#replace - xóa bảng cũ, tạo bảng mới
+		#append = giữ bảng cũ, thêm data vào cuối
+		#fail - báo lỗi nếu bảng đã tồn tại
+		if_exists = 'replace', 
+		index = False, #Pandas tự tạo cột STT -> False k tạo
+		chunksize = 1000 # thay vì load toàn bộ data, thì load 1000row tránh tốn ram và timeout khi data lớn
+	)
