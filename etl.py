@@ -21,6 +21,24 @@ def transform(df : pd.DataFrame, table_name) -> pd.DataFrame:
 		return transform_basic(df, 'customer_id')
 	elif table_name == 'sellers':
 		return transform_basic(df, 'seller_id')
+	elif table_name == 'order_items':
+		return transform_with_datetime(
+				df,
+				['order_id', 'order_item_id'],
+				['shipping_limit_date']
+			)
+	elif table_name == 'order_reviews':
+		return transform_with_datetime(
+				df,
+				['order_id', 'review_id'],
+				['review_creation_date', 'review_answer_timestamp']
+			)
+	elif table_name == 'order_payments':
+		return transform_basic(df, ['order_id', 'payment_sequential'])
+	elif table_name == 'geolocation':
+		return transform_geolocation(df)
+	elif table_name == 'category_translation':
+		return transform_basic(df, 'product_category_name')
 	else:
 		return df
 
@@ -39,7 +57,7 @@ def transform_products(df : pd.DataFrame) -> pd.DataFrame:
 
 	return df
 
-def transform_basic(df : pd.DataFrame, primary_key : str) -> pd.DataFrame:
+def transform_basic(df : pd.DataFrame, primary_key) -> pd.DataFrame:
 	"""Transform basic primary key"""
 
 	#B1: Drop duplicate theo primary key
@@ -82,6 +100,39 @@ def transform_orders(df : pd.DataFrame) -> pd.DataFrame:
 	df['delivery_delay'] = (
 		df['order_delivered_customer_date'] - df['order_estimated_delivery_date']
 	).dt.days
+	return df
+
+def transform_with_datetime(
+	df : pd.DataFrame,
+	primary_keys : list,
+	datetime_cols : list
+) -> pd.DataFrame:
+	
+	"""Drop duplicates and convert datetime columns"""
+	df = df.drop_duplicates(subset = primary_keys)
+
+	for col in datetime_cols:
+		df[col] = pd.to_datetime(df[col])
+
+	return df
+
+def transform_geolocation(df : pd.DataFrame) -> pd.DataFrame:
+	"""Aggregate geolocation by zip code prefix"""
+
+	#agg() nhận vào 1 dict
+	#{'tên_cột' : 'hàm_áp_dụng'}
+	df = df.groupby('geolocation_zip_code_prefix').agg({
+		#Lấy trung bình tọa đọo vì 1 zip code có nhiều điểm tọa đọo khác nhau
+		'geolocation_lat' : 'mean',
+		'geolocation_lng' : 'mean',
+
+		#Lấy giá trị xuất hiện nhiều nhất vì 1 zip code có thể có nhiều city/state
+		#mode() trả về series giảm dần -> [0] là lấy giá trị đầu tiên trong series đó
+		#nếu bằng nhau thì xếp theo alphabet
+		'geolocation_city' : lambda x : x.mode()[0],
+		'geolocation_state' : lambda x : x.mode()[0]
+	}).reset_index() #đưa zip code từ index về thành cột bình thường
+
 	return df
 
 def load(df : pd.DataFrame, engine : Engine, table_name : str) -> None:
