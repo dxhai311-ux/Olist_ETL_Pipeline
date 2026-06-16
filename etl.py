@@ -1,16 +1,22 @@
 import pandas as pd 
 from sqlalchemy.engine import Engine
+from pathlib import Path 
+
+# __file__ : đường dẫn tới file hiện tại 
+# .parent  : thư mục chứa file hiện tại
+BASE_DIR = Path(__file__).parent
+DATA_DIR = BASE_DIR / "data" # tương đương : os.path.join(BASE_DIR, "data")
 
 def extract(file_name : str) -> pd.DataFrame:
 	"""
 	Read csv file from data folder
 	"""
 
-	file_path = f"data/{file_name}"
-
+	file_path = DATA_DIR / file_name
+	
 	df = pd.read_csv(file_path)
 
-	return df 
+	return df	
 
 def transform(df : pd.DataFrame, table_name) -> pd.DataFrame:
 	if table_name == 'orders':
