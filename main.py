@@ -4,6 +4,22 @@ from etl import (
  	load
 )
 from db import get_engine
+import logging 
+
+#Cấu hình mặc địch cho hệ thống logging
+
+logging.basicConfig(        #là 1 hàm để cấu hình logging nhanh 
+	level = logging.INFO, # dùng để hiện thị nếu là informat = "%(asctime)s - %(levelname)s - %(message)s"
+	#format là định dạng log khi in ra terminal
+	
+	format = "%(asctime)s - %(levelname)s - %(message)s"
+	#asctime : thời gian log
+	#levelname : mức độ log
+	#message : nội dung 
+)
+
+
+logger = logging.getLogger(__name__) # tạo object logger như nhân viên nhật kí
 
 TABLES = [
 	('olist_orders_dataset.csv', 'orders'),
@@ -18,11 +34,19 @@ TABLES = [
 ]
 
 def run_pipeline():
+	logger.info("Starting ETL Pipeline")
 	engine = get_engine()
 	for file_name, table_name in TABLES:
+		logger.info(f"Processing table : %s", table_name)
 		df = extract(file_name)
+		logger.info(
+			f"Extracted %s rows from %s", len(df), table_name)
 		df = transform(df, table_name)
+		logger.info(
+			f"Tranformed %s, remaining rows : %s", table_name, len(df))
 		load(df, engine, table_name)
+		logger.info(
+			f"Loaded %s into PoestgreSQL", table_name)
 	
 
 def check_file(file_name : str) -> None:
